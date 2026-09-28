@@ -1,0 +1,28 @@
+[out:json][timeout:90];
+
+rel
+  ["boundary"="administrative"]
+  ["ISO3166-2"="KR-11"];
+
+map_to_area -> .seoul;
+
+(
+  nwr
+    ["leisure"="park"]
+    ["name"]
+    (area.seoul);
+
+  nwr
+    ["leisure"="pitch"]
+    ["sport"="soccer"]
+    ["name"]
+    (area.seoul);
+
+  nwr
+    ["leisure"="pitch"]
+    ["sport"="basketball"]
+    ["name"]
+    (area.seoul);
+);
+
+out center tags;

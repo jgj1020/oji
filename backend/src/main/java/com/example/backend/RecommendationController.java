@@ -26,7 +26,19 @@ public class RecommendationController {
             @RequestParam String mood
     ) {
         String sql = """
-            SELECT id, name, emoji, description, max_budget
+            SELECT
+                id,
+                name,
+                emoji,
+                description,
+                max_budget,
+                is_free,
+                environment,
+                subcategory,
+                min_people,
+                max_people,
+                min_hours,
+                mood
             FROM activities
             WHERE category = ?
               AND min_people <= ?
@@ -36,7 +48,7 @@ public class RecommendationController {
             ORDER BY
               CASE WHEN mood = ? THEN 0 ELSE 1 END,
               max_budget ASC
-            LIMIT 5
+            LIMIT 30
             """;
 
         return jdbcTemplate.queryForList(

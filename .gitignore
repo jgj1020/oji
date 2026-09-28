@@ -1,0 +1,15 @@
+backups/
+
+frontend/src/app/page.before-*.tsx
+frontend/src/app/globals.before-tabs.css
+
+kakao-test.json
+overpass-seoul.json
+
+real-place-code.txt
+real-place-component.txt
+real-place-parent.txt
+
+.env
+.env.local
+.env.*.local
