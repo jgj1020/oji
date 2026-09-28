@@ -12,4 +12,4 @@ real-place-parent.txt
 
 .env
 .env.local
-.env.*.local
+.env.*.localfrontend/src/app/**/page.backup.tsx
