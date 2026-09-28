@@ -111,6 +111,7 @@ export default function Home() {
 
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbySlow, setNearbySlow] = useState(false);
   const [nearbyTypeFilter, setNearbyTypeFilter] = useState("ALL");
   const [coords, setCoords] = useState<{
     latitude: number;
@@ -171,6 +172,17 @@ export default function Home() {
     longitude: number
   ) {
     setNearbyLoading(true);
+    setNearbySlow(false);
+
+    const controller = new AbortController();
+
+    const slowTimer = window.setTimeout(() => {
+      setNearbySlow(true);
+    }, 8000);
+
+    const abortTimer = window.setTimeout(() => {
+      controller.abort();
+    }, 45000);
 
     try {
       const params = new URLSearchParams({
@@ -181,7 +193,8 @@ export default function Home() {
       });
 
       const response = await fetch(
-        `/backend-api/places/nearby?${params}`
+        `/backend-api/places/nearby?${params}`,
+        { signal: controller.signal }
       );
 
       if (!response.ok) {
@@ -204,6 +217,9 @@ export default function Home() {
       console.error(error);
       setNearbyPlaces([]);
     } finally {
+      window.clearTimeout(slowTimer);
+      window.clearTimeout(abortTimer);
+      setNearbySlow(false);
       setNearbyLoading(false);
     }
   }
@@ -803,7 +819,9 @@ function shuffleResults() {
               <MapPin size={16} />
 
               {nearbyLoading
-                ? "찾는 중"
+                ? nearbySlow
+                  ? "서버 준비 중"
+                  : "찾는 중"
                 : "내 주변"}
             </button>
           </div>
