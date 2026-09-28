@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const backendUrl =
-  process.env.BACKEND_URL ?? "http://localhost:8080";
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:8080"
+    : "https://oji-backend.onrender.com";
 
 const nextConfig: NextConfig = {
   async rewrites() {
