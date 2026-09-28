@@ -251,7 +251,7 @@ export default function NearbyPage() {
 
       const response =
         await fetch(
-          `http://localhost:8080/api/real-places?${params}`
+          `/backend-api/real-places?${params}`
         );
 
       if (!response.ok) {

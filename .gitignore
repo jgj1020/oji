@@ -13,3 +13,10 @@ real-place-parent.txt
 .env
 .env.local
 .env.*.localfrontend/src/app/**/page.backup.tsx
+
+oji-db.sql
+
+oji-prod.sql
+
+frontend/src/app/**/page.backup.tsx
+frontend/src/app/page.backup.tsx

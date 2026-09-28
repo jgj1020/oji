@@ -24,11 +24,11 @@ type Weather = {
 
 type Props = {
   coords: Coordinates | null;
-  onApply: (environment: string) => void;
+  onApply: (environment: "ALL" | "INDOOR" | "OUTDOOR") => void;
   onRequestLocation: () => void;
 };
 
-function getEnvironment(weather: Weather) {
+function getEnvironment(weather: Weather): "INDOOR" | "OUTDOOR" {
   const badWeather =
     weather.precipitation > 0 ||
     weather.weather_code >= 51;
@@ -117,6 +117,7 @@ export default function WeatherSmartBar({
       return;
     }
 
+    const currentCoords = coords;
     const controller = new AbortController();
 
     async function loadWeather() {
@@ -124,8 +125,8 @@ export default function WeatherSmartBar({
 
       try {
         const params = new URLSearchParams({
-          latitude: String(coords.latitude),
-          longitude: String(coords.longitude),
+          latitude: String(currentCoords.latitude),
+          longitude: String(currentCoords.longitude),
           current:
             "temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m",
           timezone: "auto",
@@ -179,7 +180,7 @@ export default function WeatherSmartBar({
       onApply("ALL");
     } else {
       setEnabled(true);
-      onApply(environment);
+      onApply(environment as "INDOOR" | "OUTDOOR");
     }
   }
 

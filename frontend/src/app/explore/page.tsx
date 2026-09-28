@@ -69,7 +69,7 @@ export default function ExplorePage() {
         });
 
         const response = await fetch(
-          `http://localhost:8080/api/activities?${params}`
+          `/backend-api/activities?${params}`
         );
 
         const data = await response.json();

@@ -363,6 +363,12 @@ export default function RealPlaceSuggestions({
       setPlaces([]);
 
       try {
+        const currentCoords = coords;
+
+        if (!currentCoords) {
+          return;
+        }
+
         const candidates =
           buildSearchCandidates(
             stableActivityName
@@ -391,14 +397,18 @@ export default function RealPlaceSuggestions({
           searchQuery: string,
           searchRadius: number
         ) {
+          if (!currentCoords) {
+            throw new Error("위치 정보가 없습니다.");
+          }
+
           const params =
             new URLSearchParams({
               query: searchQuery,
               lat: String(
-                coords.latitude
+                currentCoords.latitude
               ),
               lng: String(
-                coords.longitude
+                currentCoords.longitude
               ),
               radius: String(
                 searchRadius
@@ -407,7 +417,7 @@ export default function RealPlaceSuggestions({
             });
 
           const response = await fetch(
-            `http://localhost:8080/api/real-places?${params}`,
+            `/backend-api/real-places?${params}`,
             {
               signal:
                 controller.signal,

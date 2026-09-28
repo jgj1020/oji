@@ -181,7 +181,7 @@ export default function Home() {
       });
 
       const response = await fetch(
-        `http://localhost:8080/api/places/nearby?${params}`
+        `/backend-api/places/nearby?${params}`
       );
 
       if (!response.ok) {
@@ -408,7 +408,7 @@ export default function Home() {
       });
 
       const response = await fetch(
-        `http://localhost:8080/api/recommendations?${params}`
+        `/backend-api/recommendations?${params}`
       );
 
       if (!response.ok) {
@@ -435,7 +435,7 @@ export default function Home() {
           });
 
         const fallbackResponse = await fetch(
-          `http://localhost:8080/api/activities?${fallbackParams}`
+          `/backend-api/activities?${fallbackParams}`
         );
 
         if (fallbackResponse.ok) {
@@ -1100,10 +1100,10 @@ function shuffleResults() {
 
                     <RecommendationFit
                       item={item}
-                      people={people}
-                      budget={budget}
-                      hours={time}
-                      mood={mood}
+                      people={peopleMap[people]}
+                      budget={budgetMap[budget]}
+                      hours={timeMap[time]}
+                      mood={moodMap[mood]}
                       weatherEnvironment={environmentFilter}
                     />
 
