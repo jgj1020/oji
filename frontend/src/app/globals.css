@@ -5022,3 +5022,25 @@ button:active {
 .my-stat-grid span {
   font-size: 8px;
 }
+
+/* Recovery paths remain readable and keyboard accessible on small screens. */
+.feedback-message, .manual-place-search {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #d9cff2;
+  border-radius: 16px;
+  background: #faf8ff;
+  color: #514361;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.manual-place-search label { display: block; font-weight: 700; margin-bottom: 8px; }
+.manual-place-search > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.manual-place-search input { flex: 1; min-width: 120px; width: 100%; border: 1px solid #b7a4d6; border-radius: 8px; padding: 10px; font-size: 16px; color: #30243c; background: white; }
+.manual-place-search button { padding: 10px 14px; border-radius: 8px; background: #6843cc; color: white; min-height: 44px; }
+.manual-place-search small { display: block; margin-top: 8px; color: #64576f; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #6843cc; outline-offset: 3px; }
+a.sub-result-content { text-align: left; color: inherit; text-decoration: none; }
+a.explore-map { display: inline-flex; align-items: center; gap: 4px; color: #6744bd; min-height: 44px; text-decoration: none; font-size: 13px; font-weight: 700; }
+.explore-card-main > p, .sub-result-content > p, .best-card > p, .saved-page-info > p { color: #64576f !important; font-size: 13px !important; line-height: 1.6 !important; }

@@ -7,6 +7,10 @@ import WeatherSmartBar from "@/components/WeatherSmartBar";
 import RealPlaceSuggestions from "@/components/RealPlaceSuggestions";
 
 import ActivityIcon from "@/components/ActivityIcon";
+import ManualPlaceSearch from "@/components/ManualPlaceSearch";
+import { locationErrorMessage } from "@/lib/location";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { useEffect, useState } from "react";
 import {
@@ -84,6 +88,7 @@ const categories = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   const [category, setCategory] = useState("PLAY");
   const [people, setPeople] = useState("3~4명");
   const [budget, setBudget] = useState("2만원 이하");
@@ -107,7 +112,11 @@ export default function Home() {
     useState<"ALL" | "INDOOR" | "OUTDOOR">("ALL");
   const [visibleCount, setVisibleCount] = useState(5);
 
-  const [locationText, setLocationText] = useState("서울");
+  const [locationText, setLocationText] = useState("위치 설정");
+  const [locationError, setLocationError] = useState("");
+  const [nearbyError, setNearbyError] = useState("");
+  const [recommendationError, setRecommendationError] = useState("");
+  const [relaxedConditions, setRelaxedConditions] = useState(false);
 
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
@@ -172,6 +181,7 @@ export default function Home() {
     longitude: number
   ) {
     setNearbyLoading(true);
+    setNearbyError("");
     setNearbySlow(false);
 
     const controller = new AbortController();
@@ -216,6 +226,7 @@ export default function Home() {
     } catch (error) {
       console.error(error);
       setNearbyPlaces([]);
+      setNearbyError("주변 장소를 불러오지 못했어. 잠시 후 다시 시도해줘.");
     } finally {
       window.clearTimeout(slowTimer);
       window.clearTimeout(abortTimer);
@@ -224,8 +235,10 @@ export default function Home() {
     }
   }
   function getCurrentLocation() {
+    if (locationText === "위치 확인 중...") return;
+    setLocationError("");
     if (!navigator.geolocation) {
-      alert("현재 브라우저에서는 위치 기능을 사용할 수 없어.");
+      setLocationError("이 브라우저에서는 위치 기능을 사용할 수 없어. 지역을 입력해서 찾아줘.");
       return;
     }
 
@@ -245,10 +258,11 @@ export default function Home() {
           position.coords.longitude
         );
       },
-      () => {
-        setLocationText("서울");
-        alert("위치 권한을 허용해야 가까운 장소를 찾을 수 있어!");
-      }
+      (error) => {
+        setLocationText(coords ? "내 위치" : "위치 설정");
+        setLocationError(locationErrorMessage(error.code));
+      },
+      { timeout: 10000, maximumAge: 60000 }
     );
   }
 
@@ -406,6 +420,8 @@ export default function Home() {
   ) {
     setLoading(true);
     setSearched(true);
+    setRecommendationError("");
+    setRelaxedConditions(false);
 
     const targetCategory =
       categoryOverride ?? category;
@@ -459,6 +475,7 @@ export default function Home() {
             await fallbackResponse.json();
 
           data = fallbackData;
+          setRelaxedConditions(fallbackData.length > 0);
         }
       }
 
@@ -498,6 +515,7 @@ export default function Home() {
        * 위 fallback에서 처리됨.
        */
       setResults([]);
+      setRecommendationError("추천을 불러오지 못했어. 연결을 확인하고 다시 시도해줘.");
     } finally {
       setLoading(false);
     }
@@ -508,6 +526,9 @@ function shuffleResults() {
   }
 
   function resetConditions() {
+    resetResultFilters();
+    setRecommendationError("");
+    setRelaxedConditions(false);
     setCategory("PLAY");
     setPeople("3~4명");
     setBudget("2만원 이하");
@@ -520,6 +541,13 @@ function shuffleResults() {
       top: 0,
       behavior: "smooth",
     });
+  }
+
+  function resetResultFilters() {
+    setSearch("");
+    setFreeOnly(false);
+    setEnvironmentFilter("ALL");
+    setVisibleCount(5);
   }
 
   function toggleSave(item: Recommendation) {
@@ -560,10 +588,7 @@ function shuffleResults() {
   }
 
   function openMap(item: Recommendation) {
-    window.open(
-      `https://map.naver.com/p/search/${encodeURIComponent(item.name)}`,
-      "_blank"
-    );
+    router.push(`/nearby?query=${encodeURIComponent(item.name)}`);
   }
 
   const filteredResults = results.filter((item) => {
@@ -608,11 +633,17 @@ function shuffleResults() {
             <span className="logo-sub">오늘 뭐 하지?</span>
           </div>
 
-          <button className="location" onClick={getCurrentLocation}>
+          <button className="location" onClick={getCurrentLocation} disabled={locationText === "위치 확인 중..."}>
             <MapPin size={16} />
             {locationText}
           </button>
         </header>
+        {locationError && (
+          <div className="feedback-message">
+            <p role="alert">{locationError}</p>
+            <ManualPlaceSearch activity={visibleResults[0]?.name} />
+          </div>
+        )}
       <button
         type="button"
         className="home-nearby-entry"
@@ -702,6 +733,7 @@ function shuffleResults() {
                 <button
                   key={item.value}
                   className={`category-item ${active ? "selected" : ""}`}
+                  aria-pressed={active}
                   onClick={() => changeRecommendationCategory(item.value)}
                 >
                   <div className="category-icon">
@@ -933,6 +965,7 @@ function shuffleResults() {
             </div>
           )}
 
+          {nearbyError && <p className="feedback-message" role="alert">{nearbyError}</p>}
           {!nearbyLoading &&
             nearbyPlaces.length === 0 && (
               <button
@@ -987,6 +1020,7 @@ function shuffleResults() {
                 <div className="result-search">
                   <input
                     type="text"
+                    aria-label="추천 검색"
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
@@ -998,6 +1032,7 @@ function shuffleResults() {
 
                 <div className="quick-filters">
                   <button
+                    aria-pressed={freeOnly}
                     className={freeOnly ? "active" : ""}
                     onClick={() => {
                       setFreeOnly(!freeOnly);
@@ -1008,6 +1043,7 @@ function shuffleResults() {
                   </button>
 
                   <button
+                    aria-pressed={environmentFilter === "INDOOR"}
                     className={environmentFilter === "INDOOR" ? "active" : ""}
                     onClick={() => {
                       setEnvironmentFilter(
@@ -1022,6 +1058,7 @@ function shuffleResults() {
                   </button>
 
                   <button
+                    aria-pressed={environmentFilter === "OUTDOOR"}
                     className={environmentFilter === "OUTDOOR" ? "active" : ""}
                     onClick={() => {
                       setEnvironmentFilter(
@@ -1057,11 +1094,24 @@ function shuffleResults() {
                 </button>
               </div>
 
-              <RealPlaceSuggestions
+              {relaxedConditions && (
+                <p className="feedback-message" role="status">모든 조건에 맞는 활동이 없어 같은 카테고리의 다른 활동을 보여줘. 예산·인원·시간을 다시 확인해줘.</p>
+              )}
+              {visibleResults.length > 0 && <RealPlaceSuggestions
+                key={visibleResults[0].id}
                 activityName={visibleResults[0]?.name}
                 coords={coords}
                 onRequestLocation={getCurrentLocation}
-              />
+                locationError={locationError}
+              />}
+              {visibleResults.length === 0 && (
+                <div className="empty-result" role="status">
+                  <h3>선택한 필터에 맞는 추천이 없어</h3>
+                  <p>검색어나 무료·실내·야외 필터를 해제해봐.</p>
+                  <button className="retry-button" onClick={resetResultFilters}>검색·필터 초기화</button>
+                  {ignoredRecommendationIds.length > 0 && <button className="retry-button" onClick={resetRecommendationPreferences}>관심 없음 초기화</button>}
+                </div>
+              )}
 
               {visibleResults.map((item, index) =>
                 index === 0 ? (
@@ -1078,7 +1128,9 @@ function shuffleResults() {
                             ? "saved"
                             : ""
                         }`}
-                        onClick={() => toggleSave(item)}
+                        aria-label={`${item.name} ${saved.some((entry) => entry.id === item.id) ? "저장 취소" : "저장"}`}
+                      aria-pressed={saved.some((entry) => entry.id === item.id)}
+                      onClick={() => toggleSave(item)}
                       >
                         <Heart
                           size={19}
@@ -1162,9 +1214,9 @@ function shuffleResults() {
   />
 </div>
 
-                    <div
+                    <Link
                       className="sub-result-content"
-                      onClick={() => openMap(item)}
+                      href={`/nearby?query=${encodeURIComponent(item.name)}`}
                     >
                       <small>추천 {index + 1}</small>
                       <h3>{item.name}</h3>
@@ -1177,7 +1229,7 @@ function shuffleResults() {
                         {" · "}
                         {item.environment === "INDOOR" ? "실내" : "야외"}
                       </span>
-                    </div>
+                    </Link>
 
                     <button
                       className={`mini-heart ${
@@ -1185,6 +1237,8 @@ function shuffleResults() {
                           ? "saved"
                           : ""
                       }`}
+                      aria-label={`${item.name} ${saved.some((entry) => entry.id === item.id) ? "저장 취소" : "저장"}`}
+                      aria-pressed={saved.some((entry) => entry.id === item.id)}
                       onClick={() => toggleSave(item)}
                     >
                       <Heart
@@ -1220,6 +1274,7 @@ function shuffleResults() {
               <button
                 className="retry-button"
                 onClick={shuffleResults}
+                disabled={displayedResults.length === 0}
               >
                 <Shuffle size={16} />
                 다른 추천 보기
@@ -1230,8 +1285,9 @@ function shuffleResults() {
           {searched && !loading && results.length === 0 && (
             <div className="empty-result">
               <Sparkles size={28} />
-              <h3>딱 맞는 결과가 없네</h3>
-              <p>조건을 조금 바꿔서 다시 찾아봐!</p>
+              <h3>{recommendationError ? "추천을 불러오지 못했어" : "딱 맞는 결과가 없네"}</h3>
+              <p role="status">{recommendationError || "조건을 조금 바꿔서 다시 찾아봐!"}</p>
+              <button className="retry-button" onClick={() => loadRecommendations()}>다시 시도</button>
             </div>
           )}
         </section>
@@ -1248,6 +1304,7 @@ function shuffleResults() {
               </div>
 
               <button
+                aria-label="최근 추천 기록 삭제"
                 onClick={() => {
                   setRecent([]);
                   localStorage.removeItem("oji-recent");
@@ -1309,7 +1366,9 @@ function shuffleResults() {
 
                   <button
                     className="saved-delete"
-                    onClick={() => toggleSave(item)}
+                    aria-label={`${item.name} ${saved.some((entry) => entry.id === item.id) ? "저장 취소" : "저장"}`}
+                      aria-pressed={saved.some((entry) => entry.id === item.id)}
+                      onClick={() => toggleSave(item)}
                   >
                     <Trash2 size={16} />
                   </button>
