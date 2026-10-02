@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import ActivityIcon from "@/components/ActivityIcon";
 
 import { useEffect, useState } from "react";
@@ -42,6 +43,8 @@ export default function ExplorePage() {
   const [freeOnly, setFreeOnly] = useState(false);
   const [environment, setEnvironment] = useState("ALL");
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [savedIds, setSavedIds] = useState<number[]>([]);
 
   useEffect(() => {
@@ -57,8 +60,10 @@ export default function ExplorePage() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setLoading(true);
+      setFailed(false);
 
       try {
         const params = new URLSearchParams({
@@ -69,20 +74,25 @@ export default function ExplorePage() {
         });
 
         const response = await fetch(
-          `/backend-api/activities?${params}`
+          `/backend-api/activities?${params}`,
+          { signal: controller.signal }
         );
-
+        if (!response.ok) throw new Error("활동 검색 실패");
         const data = await response.json();
+        if (!Array.isArray(data)) throw new Error("잘못된 검색 결과");
+        if (controller.signal.aborted) return;
         setItems(data);
       } catch {
+        if (controller.signal.aborted) return;
         setItems([]);
+        setFailed(true);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }, 200);
 
-    return () => clearTimeout(timer);
-  }, [category, search, freeOnly, environment]);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [category, search, freeOnly, environment, retryKey]);
 
   function toggleSave(item: Activity) {
     const current = JSON.parse(
@@ -99,12 +109,7 @@ export default function ExplorePage() {
     setSavedIds(next.map((saved) => saved.id));
   }
 
-  function openMap(item: Activity) {
-    window.open(
-      `https://map.naver.com/p/search/${encodeURIComponent(item.name)}`,
-      "_blank"
-    );
-  }
+
 
   return (
     <main className="app-bg">
@@ -125,6 +130,7 @@ export default function ExplorePage() {
           <Search size={19} />
 
           <input
+            aria-label="활동 검색"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="축구, 볼링, 카페, 전시 검색..."
@@ -204,6 +210,8 @@ export default function ExplorePage() {
 
                     <button
                       className={saved ? "saved" : ""}
+                      aria-label={`${item.name} ${saved ? "저장 취소" : "저장"}`}
+                      aria-pressed={saved}
                       onClick={() => toggleSave(item)}
                     >
                       <Heart
@@ -230,13 +238,13 @@ export default function ExplorePage() {
                     </span>
                   </div>
 
-                  <button
+                  <Link
                     className="explore-map"
-                    onClick={() => openMap(item)}
+                    href={`/nearby?query=${encodeURIComponent(item.name)}`}
                   >
                     <MapPin size={15} />
                     근처에서 찾기
-                  </button>
+                  </Link>
                 </div>
               </article>
             );
@@ -246,8 +254,10 @@ export default function ExplorePage() {
         {!loading && items.length === 0 && (
           <div className="tab-empty">
             <Sparkles size={28} />
-            <h3>검색 결과가 없어</h3>
-            <p>조건을 조금 바꿔봐.</p>
+            <h3>{failed ? "활동을 불러오지 못했어" : "검색 결과가 없어"}</h3>
+            {failed && <button onClick={() => setRetryKey((value) => value + 1)}>다시 시도</button>}
+            <p>검색어와 필터를 바꾸면 다른 활동을 볼 수 있어.</p>
+            <button onClick={() => { setSearch(""); setCategory("ALL"); setFreeOnly(false); setEnvironment("ALL"); }}>검색·필터 초기화</button>
           </div>
         )}
 

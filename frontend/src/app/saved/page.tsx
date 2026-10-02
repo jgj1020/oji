@@ -1,6 +1,7 @@
 "use client";
 
 import ActivityIcon from "@/components/ActivityIcon";
+import { useRouter } from "next/navigation";
 
 import { useEffect, useState } from "react";
 import {
@@ -25,6 +26,7 @@ type Activity = {
 };
 
 export default function SavedPage() {
+  const router = useRouter();
   const [saved, setSaved] = useState<Activity[]>([]);
 
   useEffect(() => {
@@ -45,10 +47,7 @@ export default function SavedPage() {
   }
 
   function openMap(item: Activity) {
-    window.open(
-      `https://map.naver.com/p/search/${encodeURIComponent(item.name)}`,
-      "_blank"
-    );
+    router.push(`/nearby?query=${encodeURIComponent(item.name)}`);
   }
 
   return (
@@ -113,6 +112,7 @@ export default function SavedPage() {
 
                 <button
                   className="saved-remove"
+                  aria-label={`${item.name} 저장 취소`}
                   onClick={() => remove(item)}
                 >
                   <Trash2 size={17} />

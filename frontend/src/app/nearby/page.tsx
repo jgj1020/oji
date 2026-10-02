@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 
 import styles from "./nearby.module.css";
+import ManualPlaceSearch from "@/components/ManualPlaceSearch";
+import { locationErrorMessage } from "@/lib/location";
 
 import {
   getTodayPlan,
@@ -92,6 +94,7 @@ export default function NearbyPage() {
     useState<string[]>([]);
 
   useEffect(() => {
+    setInput(new URLSearchParams(window.location.search).get("query")?.trim() ?? "");
     const historyRaw =
       localStorage.getItem("oji-search-history");
 
@@ -175,11 +178,11 @@ export default function NearbyPage() {
         setLocationLoading(false);
       },
 
-      () => {
+      (error) => {
         setLocationLoading(false);
 
         setError(
-          "주변 장소를 찾으려면 위치 권한을 허용해줘."
+          locationErrorMessage(error.code)
         );
       },
 
@@ -297,6 +300,7 @@ export default function NearbyPage() {
         <button
           type="button"
           className={styles.back}
+          aria-label="홈으로 돌아가기"
           onClick={() =>
             window.location.href = "/"
           }
@@ -316,6 +320,7 @@ export default function NearbyPage() {
           <Search size={18} />
 
           <input
+            aria-label="주변 장소 검색"
             value={input}
             onChange={(e) =>
               setInput(e.target.value)
@@ -511,10 +516,11 @@ export default function NearbyPage() {
       )}
 
       {!loading && error && (
-        <div className={styles.error}>
+        <div className={styles.error} role="alert">
           {error}
         </div>
       )}
+      {!coords && !locationLoading && <ManualPlaceSearch activity={input || "놀거리"} />}
 
       {!loading &&
         places.length > 0 && (

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import ManualPlaceSearch from "@/components/ManualPlaceSearch";
 import {
   getTodayPlan,
   toggleTodayPlan,
@@ -41,6 +42,7 @@ type Props = {
   activityName?: string;
   coords: Coordinates | null;
   onRequestLocation: () => void;
+  locationError?: string;
 };
 
 function activityToQuery(name: string) {
@@ -305,6 +307,7 @@ export default function RealPlaceSuggestions({
   activityName,
   coords,
   onRequestLocation,
+  locationError,
 }: Props) {
   const [places, setPlaces] = useState<RealPlace[]>([]);
   const [loading, setLoading] = useState(false);
@@ -320,19 +323,7 @@ export default function RealPlaceSuggestions({
   const selectedPlace =
     todayPlan[todayPlan.length - 1] ?? null;
 
-  const [stableActivityName, setStableActivityName] =
-    useState(activityName ?? "");
-
-  useEffect(() => {
-    if (activityName) {
-      setStableActivityName(activityName);
-    }
-  }, [activityName]);
-
-  const query = useMemo(() => {
-    if (!stableActivityName) return "";
-    return activityToQuery(stableActivityName);
-  }, [stableActivityName]);
+  const query = activityName ? activityToQuery(activityName) : "";
 
   useEffect(() => {
     const syncPlan = () => {
@@ -371,7 +362,7 @@ export default function RealPlaceSuggestions({
 
         const candidates =
           buildSearchCandidates(
-            stableActivityName
+            activityName ?? ""
           );
 
         /*
@@ -472,6 +463,8 @@ export default function RealPlaceSuggestions({
                 searchRadius
               );
 
+            if (controller.signal.aborted) return;
+
             if (found.length > 0) {
               setPlaces(found);
 
@@ -506,7 +499,7 @@ export default function RealPlaceSuggestions({
         console.error(error);
         setFailed(true);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
@@ -520,7 +513,7 @@ export default function RealPlaceSuggestions({
     query,
     radius,
     reloadKey,
-    stableActivityName,
+    activityName,
   ]);
 
   function choosePlace(place: RealPlace) {
@@ -539,7 +532,7 @@ export default function RealPlaceSuggestions({
     setTodayPlan(next);
   }
 
-  if (!stableActivityName) return null;
+  if (!activityName) return null;
 
   return (
     <section className="real-place-section compact">
@@ -587,6 +580,12 @@ export default function RealPlaceSuggestions({
 
           <Navigation size={17} />
         </button>
+      )}
+      {locationError && (
+        <div className="feedback-message">
+          <p role="alert">{locationError}</p>
+          <ManualPlaceSearch activity={activityName} />
+        </div>
       )}
 
       {coords && (
