@@ -8,9 +8,6 @@ import {
   Heart,
   Trash2,
   MapPin,
-  House,
-  Compass,
-  UserRound,
 } from "lucide-react";
 
 type Activity = {
@@ -68,6 +65,7 @@ export default function SavedPage() {
         <div className="saved-page-count">
           <strong>{saved.length}</strong>
           <span>개의 추천을 저장했어</span>
+          <Heart className="saved-count-icon" size={28} strokeWidth={1.7} aria-hidden="true" />
         </div>
 
         {saved.length === 0 ? (
@@ -121,28 +119,6 @@ export default function SavedPage() {
             ))}
           </div>
         )}
-
-        <nav className="bottom-nav">
-          <button onClick={() => (window.location.href = "/")}>
-            <House size={22} />
-            <span>홈</span>
-          </button>
-
-          <button onClick={() => (window.location.href = "/explore")}>
-            <Compass size={22} />
-            <span>탐색</span>
-          </button>
-
-          <button className="nav-active">
-            <Heart size={22} />
-            <span>저장</span>
-          </button>
-
-          <button onClick={() => (window.location.href = "/my")}>
-            <UserRound size={22} />
-            <span>MY</span>
-          </button>
-        </nav>
       </section>
     </main>
   );

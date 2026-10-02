@@ -1,18 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import {
   ArrowLeft,
   MapPin,
   Navigation,
   Route,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
 } from "lucide-react";
 
 import {
   getTodayPlan,
   onTodayPlanChange,
   type TodayPlanPlace,
+  moveTodayPlanPlace,
+  removeTodayPlanPlace,
 } from "@/lib/todayPlan";
 
 import styles from "./course.module.css";
@@ -92,12 +98,9 @@ export default function CoursePage() {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <button
-          type="button"
-          onClick={() => history.back()}
-        >
+        <Link href="/" aria-label="홈으로 돌아가기" className={styles.back}>
           <ArrowLeft size={19} />
-        </button>
+        </Link>
 
         <div>
           <span>OJI COURSE</span>
@@ -115,17 +118,12 @@ export default function CoursePage() {
 
           <p>
             마음에 드는 장소에서
-            ‘오늘 코스에 추가’를 눌러봐.
+            ‘여기 갈래’를 눌러봐. 선택한 장소를 여기서 모아볼 수 있어.
           </p>
 
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = "/";
-            }}
-          >
-            추천 받으러 가기
-          </button>
+          <Link href="/nearby" className={styles.findPlaces}>
+            장소 찾아서 코스 만들기
+          </Link>
         </section>
       ) : (
         <>
@@ -136,7 +134,7 @@ export default function CoursePage() {
             </div>
 
             <div>
-              <span>코스 거리</span>
+              <span>장소 간 직선거리</span>
 
               <strong>
                 {totalDistance < 1
@@ -147,6 +145,7 @@ export default function CoursePage() {
               </strong>
             </div>
           </section>
+          <p className={styles.hint}>방문할 순서대로 정리해봐. 실제 이동 거리는 지도에서 확인할 수 있어.</p>
 
           <section className={styles.course}>
             {plan.map(
@@ -178,6 +177,14 @@ export default function CoursePage() {
                       <MapPin size={13} />
                       {place.address}
                     </p>
+                    <div className={styles.editActions}>
+                      <button type="button" disabled={index === 0} aria-label={`${place.place_name} 앞으로 이동`}
+                        onClick={() => setPlan(moveTodayPlanPlace(index, "up"))}><ArrowUp size={16} />앞으로</button>
+                      <button type="button" disabled={index === plan.length - 1} aria-label={`${place.place_name} 뒤로 이동`}
+                        onClick={() => setPlan(moveTodayPlanPlace(index, "down"))}><ArrowDown size={16} />뒤로</button>
+                      <button type="button" aria-label={`${place.place_name} 코스에서 삭제`}
+                        onClick={() => setPlan(removeTodayPlanPlace(place.id))}><Trash2 size={16} />삭제</button>
+                    </div>
 
                     {place.place_url && (
                       <button

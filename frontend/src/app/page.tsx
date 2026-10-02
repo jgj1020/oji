@@ -7,13 +7,16 @@ import WeatherSmartBar from "@/components/WeatherSmartBar";
 import RealPlaceSuggestions from "@/components/RealPlaceSuggestions";
 
 import ActivityIcon from "@/components/ActivityIcon";
-import ManualPlaceSearch from "@/components/ManualPlaceSearch";
+import LocationSearchDialog from "@/components/LocationSearchDialog";
 import { locationErrorMessage } from "@/lib/location";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { useEffect, useState } from "react";
 import {
+  Search,
+  SlidersHorizontal,
+  Sun,
   Gamepad2,
   Utensils,
   Coffee,
@@ -25,9 +28,7 @@ import {
   Clock3,
   Sparkles,
   House,
-  Compass,
   Heart,
-  UserRound,
   ArrowRight,
   MapPin,
   RotateCcw,
@@ -39,7 +40,6 @@ import {
   Bike,
   Mountain,
   Footprints,
-  Music2,
 } from "lucide-react";
 
 type Recommendation = {
@@ -58,26 +58,6 @@ type Recommendation = {
 };
 
 
-type NearbyPlace = {
-  id: number;
-  place_name: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  activity_id: number;
-  activity_name: string;
-  emoji: string;
-  category: string;
-  is_free: boolean;
-  environment: string;
-  subcategory: string;
-  min_people?: number;
-  max_people?: number;
-  min_hours?: number;
-  mood?: string;
-  distance_m: number;
-  place_type?: string | null;
-};
 const categories = [
   { name: "놀거리", value: "PLAY", icon: Gamepad2 },
   { name: "먹거리", value: "FOOD", icon: Utensils },
@@ -114,14 +94,10 @@ export default function Home() {
 
   const [locationText, setLocationText] = useState("위치 설정");
   const [locationError, setLocationError] = useState("");
-  const [nearbyError, setNearbyError] = useState("");
+  const [locationPanelOpen, setLocationPanelOpen] = useState(false);
   const [recommendationError, setRecommendationError] = useState("");
   const [relaxedConditions, setRelaxedConditions] = useState(false);
 
-  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
-  const [nearbyLoading, setNearbyLoading] = useState(false);
-  const [nearbySlow, setNearbySlow] = useState(false);
-  const [nearbyTypeFilter, setNearbyTypeFilter] = useState("ALL");
   const [coords, setCoords] = useState<{
     latitude: number;
     longitude: number;
@@ -132,11 +108,36 @@ export default function Home() {
       const savedData = localStorage.getItem("oji-saved");
       const recentData = localStorage.getItem("oji-recent");
 
+      const locationData = localStorage.getItem("oji-location");
+      if (locationData) {
+        const location = JSON.parse(locationData);
+        if (Number.isFinite(location.latitude) && Number.isFinite(location.longitude) && Math.abs(location.latitude) <= 90 && Math.abs(location.longitude) <= 180) {
+          setCoords(location);
+          setLocationText("저장된 위치");
+        }
+      }
       if (savedData) setSaved(JSON.parse(savedData));
       if (recentData) setRecent(JSON.parse(recentData));
     } catch {
       console.log("저장 데이터를 불러오지 못했습니다.");
     }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    // Refresh silently only when this browser has already granted location access.
+    // First-time visitors explicitly grant access through the location button.
+    navigator.permissions?.query({ name: "geolocation" }).then((permission) => {
+      if (!active || permission.state !== "granted" || !navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition((position) => {
+        if (!active) return;
+        const location = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+        setCoords(location);
+        setLocationText("내 위치");
+        try { localStorage.setItem("oji-location", JSON.stringify(location)); } catch {}
+      }, () => {}, { timeout: 10000, maximumAge: 60000 });
+    }).catch(() => {});
+    return () => { active = false; };
   }, []);
 
   const peopleMap: Record<string, number> = {
@@ -168,77 +169,12 @@ export default function Home() {
   };
 
 
-  function formatDistance(distance: number) {
-    if (distance < 1000) {
-      return `${Math.round(distance)}m`;
-    }
-
-    return `${(distance / 1000).toFixed(1)}km`;
-  }
-
-  async function loadNearbyPlaces(
-    latitude: number,
-    longitude: number
-  ) {
-    setNearbyLoading(true);
-    setNearbyError("");
-    setNearbySlow(false);
-
-    const controller = new AbortController();
-
-    const slowTimer = window.setTimeout(() => {
-      setNearbySlow(true);
-    }, 8000);
-
-    const abortTimer = window.setTimeout(() => {
-      controller.abort();
-    }, 45000);
-
-    try {
-      const params = new URLSearchParams({
-        lat: String(latitude),
-        lng: String(longitude),
-        category: "ALL",
-        limit: "50",
-      });
-
-      const response = await fetch(
-        `/backend-api/places/nearby?${params}`,
-        { signal: controller.signal }
-      );
-
-      if (!response.ok) {
-        throw new Error("주변 장소 API 호출 실패");
-      }
-
-      const data: NearbyPlace[] = await response.json();
-
-      setNearbyPlaces(data);
-
-      setTimeout(() => {
-        document
-          .getElementById("nearby-section")
-          ?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-      }, 100);
-    } catch (error) {
-      console.error(error);
-      setNearbyPlaces([]);
-      setNearbyError("주변 장소를 불러오지 못했어. 잠시 후 다시 시도해줘.");
-    } finally {
-      window.clearTimeout(slowTimer);
-      window.clearTimeout(abortTimer);
-      setNearbySlow(false);
-      setNearbyLoading(false);
-    }
-  }
   function getCurrentLocation() {
     if (locationText === "위치 확인 중...") return;
     setLocationError("");
     if (!navigator.geolocation) {
       setLocationError("이 브라우저에서는 위치 기능을 사용할 수 없어. 지역을 입력해서 찾아줘.");
+      setLocationPanelOpen(true);
       return;
     }
 
@@ -252,15 +188,14 @@ export default function Home() {
         });
 
         setLocationText("내 위치");
+        setLocationPanelOpen(false);
 
-        loadNearbyPlaces(
-          position.coords.latitude,
-          position.coords.longitude
-        );
+        try { localStorage.setItem("oji-location", JSON.stringify({ latitude: position.coords.latitude, longitude: position.coords.longitude })); } catch {}
       },
       (error) => {
         setLocationText(coords ? "내 위치" : "위치 설정");
         setLocationError(locationErrorMessage(error.code));
+        setLocationPanelOpen(true);
       },
       { timeout: 10000, maximumAge: 60000 }
     );
@@ -638,17 +573,14 @@ function shuffleResults() {
             {locationText}
           </button>
         </header>
-        {locationError && (
-          <div className="feedback-message">
-            <p role="alert">{locationError}</p>
-            <ManualPlaceSearch activity={visibleResults[0]?.name} />
-          </div>
-        )}
+        <LocationSearchDialog open={locationPanelOpen} error={locationError}
+          loading={locationText === "위치 확인 중..."} activity={visibleResults[0]?.name}
+          onClose={() => setLocationPanelOpen(false)} onLocate={getCurrentLocation} />
       <button
         type="button"
         className="home-nearby-entry"
         onClick={() => {
-          window.location.href = "/nearby";
+          router.push("/nearby");
         }}
       >
         <span className="home-nearby-entry-icon">
@@ -830,165 +762,6 @@ function shuffleResults() {
         </button>
 
 
-        <section
-          id="nearby-section"
-          className="nearby-section"
-        >
-          <div className="nearby-head">
-            <div>
-              <span className="section-kicker">
-                NEARBY
-              </span>
-
-              <h2>내 주변에서 바로 갈 곳</h2>
-
-              <p>
-                현재 위치에서 가까운 순으로 보여줄게.
-              </p>
-            </div>
-
-            <button onClick={getCurrentLocation}>
-              <MapPin size={16} />
-
-              {nearbyLoading
-                ? nearbySlow
-                  ? "서버 준비 중"
-                  : "찾는 중"
-                : "내 주변"}
-            </button>
-          </div>
-
-          {nearbyPlaces.length > 0 && (
-            <div className="nearby-list">
-              <div className="nearby-filter-row">
-                {[
-                  { key: "ALL", label: "전체" },
-                  { key: "PARK", label: "공원" },
-                  { key: "SOCCER", label: "축구" },
-                  { key: "BASKETBALL", label: "농구" },
-                ].map((filter) => (
-                  <button
-                    key={filter.key}
-                    className={
-                      nearbyTypeFilter === filter.key
-                        ? "nearby-filter active"
-                        : "nearby-filter"
-                    }
-                    onClick={() => setNearbyTypeFilter(filter.key)}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-
-              {nearbyPlaces
-                .filter(
-                  (place) =>
-                    nearbyTypeFilter === "ALL" ||
-                    place.place_type === nearbyTypeFilter
-                )
-                .slice(0, 5)
-                .map((place, index) => (
-                <article
-                  className="nearby-card"
-                  key={place.id}
-                >
-                  <div className="nearby-rank">
-                    {index + 1}
-                  </div>
-
-                  <div className="nearby-emoji">
-  <ActivityIcon
-    category={place.category}
-    subcategory={place.subcategory}
-    name={place.activity_name}
-    size={25}
-  />
-</div>
-
-                  <div className="nearby-info">
-                    <div className="nearby-title-row">
-                      <div>
-                        <small>
-                          {place.activity_name}
-                        </small>
-
-                        <h3>
-                          {place.place_name}
-                        </h3>
-                      </div>
-
-                      <strong>
-                        {formatDistance(
-                          Number(place.distance_m)
-                        )}
-                      </strong>
-                    </div>
-
-                    <p>{place.address}</p>
-
-                    <div className="nearby-tags">
-                      <span>
-                        {place.is_free
-                          ? "무료"
-                          : "유료"}
-                      </span>
-
-                      <span>
-                        {place.environment === "INDOOR"
-                          ? "실내"
-                          : "야외"}
-                      </span>
-
-                      <span>
-                        {place.subcategory}
-                      </span>
-                    </div>
-
-                    <button
-                      className="nearby-map-button"
-                      onClick={() =>
-                        window.open(
-                          `https://map.naver.com/p/search/${encodeURIComponent(
-                            place.place_name
-                          )}`,
-                          "_blank"
-                        )
-                      }
-                    >
-                      <MapPin size={14} />
-                      지도에서 보기
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-
-          {nearbyError && <p className="feedback-message" role="alert">{nearbyError}</p>}
-          {!nearbyLoading &&
-            nearbyPlaces.length === 0 && (
-              <button
-                className="nearby-empty"
-                onClick={getCurrentLocation}
-              >
-                <MapPin size={22} />
-
-                <div>
-                  <strong>
-                    내 주변 장소 찾아보기
-                  </strong>
-
-                  <span>
-                    위치를 허용하면 가까운 순으로 보여줘.
-                  </span>
-                </div>
-
-                <ArrowRight size={18} />
-              </button>
-            )}
-        </section>
-
         <section id="recommendations" className="recommendations">
           {searched && !loading && results.length > 0 && (
             <>
@@ -1018,6 +791,7 @@ function shuffleResults() {
 
               <div className="result-tools">
                 <div className="result-search">
+                  <Search size={18} aria-hidden="true" />
                   <input
                     type="text"
                     aria-label="추천 검색"
@@ -1039,7 +813,7 @@ function shuffleResults() {
                       setVisibleCount(5);
                     }}
                   >
-                    💸 무료만
+                    <Wallet size={15} aria-hidden="true" /> 무료만
                   </button>
 
                   <button
@@ -1054,7 +828,7 @@ function shuffleResults() {
                       setVisibleCount(5);
                     }}
                   >
-                    🏠 실내
+                    <House size={15} aria-hidden="true" /> 실내
                   </button>
 
                   <button
@@ -1069,7 +843,7 @@ function shuffleResults() {
                       setVisibleCount(5);
                     }}
                   >
-                    ☀️ 야외
+                    <Sun size={15} aria-hidden="true" /> 야외
                   </button>
                 </div>
               </div>
@@ -1078,14 +852,14 @@ function shuffleResults() {
                   className={sortMode === "recommend" ? "active" : ""}
                   onClick={() => setSortMode("recommend")}
                 >
-                  🔥 추천순
+                  <SlidersHorizontal size={14} aria-hidden="true" /> 추천순
                 </button>
 
                 <button
                   className={sortMode === "price" ? "active" : ""}
                   onClick={() => setSortMode("price")}
                 >
-                  💸 가격순
+                  <Wallet size={14} aria-hidden="true" /> 가격순
                 </button>
 
                 <button onClick={shuffleResults}>
@@ -1102,7 +876,6 @@ function shuffleResults() {
                 activityName={visibleResults[0]?.name}
                 coords={coords}
                 onRequestLocation={getCurrentLocation}
-                locationError={locationError}
               />}
               {visibleResults.length === 0 && (
                 <div className="empty-result" role="status">
@@ -1377,31 +1150,6 @@ function shuffleResults() {
             </div>
           )}
         </section>
-
-        <nav className="bottom-nav">
-  <button
-    className="nav-active"
-    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-  >
-    <House size={22} />
-    <span>홈</span>
-  </button>
-
-  <button onClick={() => (window.location.href = "/explore")}>
-    <Compass size={22} />
-    <span>탐색</span>
-  </button>
-
-  <button onClick={() => (window.location.href = "/saved")}>
-    <Heart size={22} />
-    <span>저장</span>
-  </button>
-
-  <button onClick={() => (window.location.href = "/my")}>
-    <UserRound size={22} />
-    <span>MY</span>
-  </button>
-</nav>
       </section>
     </main>
   );

@@ -13,13 +13,13 @@ export default function ManualPlaceSearch({ activity = "놀거리" }: { activity
       if (!region.trim()) return;
       window.location.assign(`https://map.naver.com/p/search/${encodeURIComponent(`${region.trim()} ${activity}`)}`);
     }}>
-      <label htmlFor={id}>위치 권한 없이 지역으로 찾기</label>
+      <label htmlFor={id}>동네 직접 입력</label>
       <div>
         <input id={id} value={region} onChange={(event) => setRegion(event.target.value)}
           placeholder="예: 성수동, 부산 서면" required maxLength={80} />
-        <button type="submit" disabled={!region.trim()}>지도 검색</button>
+        <button type="submit" disabled={!region.trim()}>찾기</button>
       </div>
-      <small>입력한 지역의 {activity} 검색 결과를 네이버 지도에서 열어.</small>
+      <small>{activity} · 네이버 지도에서 결과를 확인해.</small>
     </form>
   );
 }
