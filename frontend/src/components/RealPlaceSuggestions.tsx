@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useState } from "react";
-import ManualPlaceSearch from "@/components/ManualPlaceSearch";
 import {
   getTodayPlan,
   toggleTodayPlan,
@@ -42,7 +43,6 @@ type Props = {
   activityName?: string;
   coords: Coordinates | null;
   onRequestLocation: () => void;
-  locationError?: string;
 };
 
 function activityToQuery(name: string) {
@@ -307,7 +307,6 @@ export default function RealPlaceSuggestions({
   activityName,
   coords,
   onRequestLocation,
-  locationError,
 }: Props) {
   const [places, setPlaces] = useState<RealPlace[]>([]);
   const [loading, setLoading] = useState(false);
@@ -581,12 +580,6 @@ export default function RealPlaceSuggestions({
           <Navigation size={17} />
         </button>
       )}
-      {locationError && (
-        <div className="feedback-message">
-          <p role="alert">{locationError}</p>
-          <ManualPlaceSearch activity={activityName} />
-        </div>
-      )}
 
       {coords && (
         <div className="real-place-toolbar">
@@ -624,7 +617,7 @@ export default function RealPlaceSuggestions({
           </div>
 
           <div className="today-place-info">
-            <small>오늘 코스 · {todayPlan.length}곳</small>
+            <Link className="course-view-link" href="/course">오늘 코스 {todayPlan.length}곳 · 전체 보기 →</Link>
 
             <strong>
               {selectedPlace.place_name}
@@ -767,10 +760,10 @@ export default function RealPlaceSuggestions({
                           size={13}
                           strokeWidth={3}
                         />
-                        선택됨
+                        코스에 담았어
                       </>
                     ) : (
-                      "오늘 코스에 추가"
+                      "여기 갈래"
                     )}
                   </button>
 

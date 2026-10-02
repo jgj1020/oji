@@ -4,8 +4,6 @@ import TodayPlaceCard from "@/components/TodayPlaceCard";
 
 import { useEffect, useState } from "react";
 import {
-  House,
-  Compass,
   Heart,
   UserRound,
   MapPin,
@@ -202,28 +200,6 @@ export default function MyPage() {
             <Trash2 size={17} />
           </button>
         </section>
-
-        <nav className="bottom-nav">
-          <button onClick={() => (window.location.href = "/")}>
-            <House size={22} />
-            <span>홈</span>
-          </button>
-
-          <button onClick={() => (window.location.href = "/explore")}>
-            <Compass size={22} />
-            <span>탐색</span>
-          </button>
-
-          <button onClick={() => (window.location.href = "/saved")}>
-            <Heart size={22} />
-            <span>저장</span>
-          </button>
-
-          <button className="nav-active">
-            <UserRound size={22} />
-            <span>MY</span>
-          </button>
-        </nav>
       </section>
     </main>
   );

@@ -8,9 +8,7 @@ import {
   Search,
   Heart,
   MapPin,
-  House,
   Compass,
-  UserRound,
   Sparkles,
 } from "lucide-react";
 
@@ -260,28 +258,6 @@ export default function ExplorePage() {
             <button onClick={() => { setSearch(""); setCategory("ALL"); setFreeOnly(false); setEnvironment("ALL"); }}>검색·필터 초기화</button>
           </div>
         )}
-
-        <nav className="bottom-nav">
-          <button onClick={() => (window.location.href = "/")}>
-            <House size={22} />
-            <span>홈</span>
-          </button>
-
-          <button className="nav-active">
-            <Compass size={22} />
-            <span>탐색</span>
-          </button>
-
-          <button onClick={() => (window.location.href = "/saved")}>
-            <Heart size={22} />
-            <span>저장</span>
-          </button>
-
-          <button onClick={() => (window.location.href = "/my")}>
-            <UserRound size={22} />
-            <span>MY</span>
-          </button>
-        </nav>
       </section>
     </main>
   );

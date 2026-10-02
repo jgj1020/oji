@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -453,7 +455,7 @@ export default function NearbyPage() {
           </div>
 
           <div className={styles.todayInfo}>
-            <span>오늘 코스 · {todayPlan.length}곳</span>
+            <Link className="course-view-link" href="/course">오늘 코스 {todayPlan.length}곳 · 전체 보기 →</Link>
 
             <strong>
               {selectedPlace.place_name}
@@ -613,10 +615,10 @@ export default function NearbyPage() {
                                 size={14}
                                 strokeWidth={3}
                               />
-                              선택됨
+                              코스에 담았어
                             </>
                           ) : (
-                            "오늘 코스에 추가"
+                            "여기 갈래"
                           )}
                         </button>
 
